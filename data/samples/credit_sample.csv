@@ -1,0 +1,5 @@
+account_id,loan_amount,debt_to_income,missed_payments,credit_utilization,gender,age
+AC9901,450000,0.34,0,0.22,Male,34
+AC9902,890000,0.58,3,0.85,Female,45
+AC9903,120000,0.12,0,0.05,Male,28
+AC9904,650000,0.47,1,0.61,Female,52
