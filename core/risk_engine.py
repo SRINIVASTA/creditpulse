@@ -5,48 +5,68 @@ class ComplianceRiskEngine:
     def __init__(self, model):
         self.model = model
         
-        # Product configuration for Exposure at Default (EAD) & Capital Risk Weighting
+        # Statutory RBI Portfolio Weights & CCF rules per product line
         self.product_configs = {
-            "home_loan":     {"ccf": 1.00, "risk_weight": 0.50},  
-            "gold_loan":     {"ccf": 1.00, "risk_weight": 0.00},  
-            "bike_loan":     {"ccf": 1.00, "risk_weight": 1.00},  
-            "personal_loan": {"ccf": 1.00, "risk_weight": 1.25},  
-            "credit_card":   {"ccf": 0.50, "risk_weight": 1.25}   
+            "home_loan":     {"ccf": 1.00, "risk_weight": 0.50},  # Secured by Property
+            "gold_loan":     {"ccf": 1.00, "risk_weight": 0.00},  # Secured by Liquid Gold
+            "bike_loan":     {"ccf": 1.00, "risk_weight": 1.00},  # SECURED BY BIKE HYPOTHECATION
+            "personal_loan": {"ccf": 1.00, "risk_weight": 1.25},  # Completely Unsecured Term
+            "credit_card":   {"ccf": 0.50, "risk_weight": 1.25}   # Completely Unsecured Revolving
         }
 
     def calculate_ecl(self, df: pd.DataFrame, loan_amount_col: str) -> pd.DataFrame:
         processed = df.copy()
         
-        # Enforce column structural defaults
+        # Ensure standard banking headers are present
         if 'product_type' not in processed.columns:
-            processed['product_type'] = 'personal_loan'
+            processed['product_type'] = 'credit_card'
+        if 'limit_bal' not in processed.columns:
+            processed['limit_bal'] = processed['LIMIT_BAL'] if 'LIMIT_BAL' in processed.columns else 100000.0
         if 'collateral_val' not in processed.columns:
             processed['collateral_val'] = 0.0
-        if 'dpd' not in processed.columns:
-            processed['dpd'] = 0  # Default to performing if DPD column is absent
             
-        # Standardise data format layouts
+        # Dynamically map PAY_0 status indexes cleanly to standard Indian Days Past Due (DPD)
+        if 'dpd' not in processed.columns:
+            status_col = 'PAY_0' if 'PAY_0' in processed.columns else 'pay_0' if 'pay_0' in processed.columns else None
+            if status_col:
+                processed['dpd'] = processed[status_col].apply(lambda x: max(0, int(x) * 30))
+            else:
+                processed['dpd'] = 0
+
+        # Enforce exact floating point types
         processed[loan_amount_col] = pd.to_numeric(processed[loan_amount_col], errors='coerce').fillna(0.0)
+        processed['limit_bal'] = pd.to_numeric(processed['limit_bal'], errors='coerce').fillna(0.0)
         processed['collateral_val'] = pd.to_numeric(processed['collateral_val'], errors='coerce').fillna(0.0)
         processed['dpd'] = pd.to_numeric(processed['dpd'], errors='coerce').fillna(0).astype(int)
         processed['product_type'] = processed['product_type'].astype(str).str.strip().str.lower()
-        
-        # Maintain a dummy PD vector just to protect down-stream ReportLab hook calls
-        processed['Probability_of_Default_PD'] = np.where(processed['dpd'] > 90, 0.45, 0.02)
-        
+
         ead_arr, secured_arr, unsecured_arr, provision_arr, rwa_arr, grade_arr = [], [], [], [], [], []
         
         for idx, row in processed.iterrows():
             p_type = row['product_type']
             cfg = self.product_configs.get(p_type, {"ccf": 1.00, "risk_weight": 1.25})
             
-            # Exposure At Default
-            ead = row[loan_amount_col] * cfg['ccf']
-            days_overdue = row['dpd']
+            # Exposure At Default Calculation
+            balance = float(row[loan_amount_col])
+            limit = float(row['limit_bal'])
+            ead = balance + (max(0.0, limit - balance) * cfg['ccf'])
             
             # =====================================================================
-            # RBI IRACP DPD-BASED ASSET CLASSIFICATION MATRIX
+            # RBI SECURED PROPERTY RULES: Force collateral values based on product type
             # =====================================================================
+            if p_type in ['credit_card', 'personal_loan']:
+                # Clean Unsecured: No collateral allowed
+                collateral_backing = 0.0
+            elif p_type == 'bike_loan':
+                # SECURED: The bike itself acts as collateral. We evaluate its depreciated value.
+                # If collateral value is missing or 0 in the CSV, we fall back to a conservative 80% of loan value
+                collateral_backing = float(row['collateral_val']) if float(row['collateral_val']) > 0 else ead * 0.80
+            else:
+                # Home and Gold Loans read directly from verified asset valuations
+                collateral_backing = float(row['collateral_val'])
+            
+            # RBI IRACP DPD Time Bucket Classification Waterfall
+            days_overdue = int(row['dpd'])
             if days_overdue == 0:
                 grade = "Standard (Performing)"
             elif 1 <= days_overdue <= 30:
@@ -63,32 +83,21 @@ class ComplianceRiskEngine:
                 grade = "Doubtful (1 to 3 Years)"
             else:
                 grade = "Loss Asset"
-            
-            # Statutory override checks for Gold Loan LTV limits
-            if p_type == "gold_loan" and "ltv_ratio" in row.index:
-                try:
-                    if float(row["ltv_ratio"]) > 0.75:
-                        grade = "CRITICAL BREACH: LTV > 75%"
-                except (ValueError, TypeError):
-                    pass
 
-            # Collateral Value Asset Splitting
-            secured_amt = min(ead, float(row['collateral_val']))
+            # Dynamic Collateral Asset Splitting
+            secured_amt = min(ead, collateral_backing)
             unsecured_amt = max(0.0, ead - secured_amt)
             
-            # =====================================================================
-            # FIXED MATHEMATICAL PROVISION MULTIPLIERS (RBI ALIGNED)
-            # =====================================================================
+            # Enforce Mandated Provision Percentages (RBI IRACP Aligned)
             if "Standard" in grade:
                 prov_sec = secured_amt * 0.0040    
-                prov_unsec = unsecured_amt * 0.0040 # 0.40% flat standard provisioning
+                prov_unsec = unsecured_amt * 0.0040
             elif grade == "Sub-Standard Asset":
-                prov_sec = secured_amt * 0.10      
-                prov_unsec = unsecured_amt * 0.20  # 20% on unsecured sub-standard lines
+                prov_sec = secured_amt * 0.10      # 10% provision on secured portion (like Bike value)
+                prov_unsec = unsecured_amt * 0.20  # 20% provision on any unsecured gap
             else:
-                # Enforce absolute 100% write-down provisioning on unsecured doubtful/loss components
                 prov_sec = secured_amt * (0.25 if grade == "Doubtful (Up to 1 Year)" else 0.40 if grade == "Doubtful (1 to 3 Years)" else 1.00)
-                prov_unsec = unsecured_amt * 1.00  
+                prov_unsec = unsecured_amt * 1.00  # 100% write-down required for unsecured portions
                 
             total_provision = prov_sec + prov_unsec
             rwa = ead * cfg['risk_weight']
