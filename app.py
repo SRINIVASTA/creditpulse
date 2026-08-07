@@ -285,11 +285,14 @@ if uploaded_file is not None:
             
         st.markdown("---")
         
-        # Visual charts rendering
-        st.markdown("### 📊 Portfolio Asset Classification Profiler")
+        # =====================================================================
+        # 5. VISUAL REGULATORY PROFILERS WITH SMA CONCENTRATION TRACKING
+        # =====================================================================
+        st.markdown("### 📊 Portfolio Asset Classification & Early-Warning Profiler")
         col1, col2 = st.columns(2)
         
         with col1:
+            # Chart A: Provision Pool Distributions across Tiers
             fig_pd = px.histogram(
                 filtered_results, x="Risk_Classification", y="RBI_Mandated_Provision", color="product_type",
                 title="Statutory Provision Burden Distribution by RBI Category Status",
@@ -305,14 +308,20 @@ if uploaded_file is not None:
             st.plotly_chart(fig_pd, use_container_width=True)
             
         with col2:
-            fig_ecl = px.scatter(
-                filtered_results, x="EAD", y="RBI_Mandated_Provision", color="NPA_Status", size="RWA",
-                title="RBI Asset Delinquency Core Projections Matrix",
-                labels={"EAD": "Exposure at Default (₹)", "RBI_Mandated_Provision": "Statutory Provision Pool (₹)"},
-                template="plotly_white",
-                color_discrete_map={"Performing": "#10B981", "Non-Performing Asset (NPA)": "#EF4444", "Regulatory Violation": "#7C3AED"}
-            )
-            st.plotly_chart(fig_ecl, use_container_width=True)
+            # Chart B: RBI SMA 30-60 Day Early Warning Stress Concentration Pipeline
+            # Dynamically filters for accounts that are sitting inside SMA-0, SMA-1, or SMA-2 brackets
+            sma_pipeline_df = filtered_results[filtered_results['Risk_Classification'].str.contains('SMA', na=False)]
+            
+            if not sma_pipeline_df.empty:
+                fig_sma = px.pie(
+                    sma_pipeline_df, names="Risk_Classification", values="EAD", hole=0.4,
+                    title="⚠️ RBI SMA Pipeline Concentration (Loans Overdue 1-90 Days Before NPA Stage)",
+                    color_discrete_map={"Standard (SMA-0)": "#FBBF24", "Standard (SMA-1)": "#F59E0B", "Standard (SMA-2)": "#D97706"},
+                    template="plotly_white"
+                )
+                st.plotly_chart(fig_sma, use_container_width=True)
+            else:
+                st.info("🟢 Good News: Zero capital exposure presently stuck in overdue SMA early-warning brackets.")
             
         st.subheader("📋 Centralized Asset Regulatory Grading Registry")
         st.dataframe(
