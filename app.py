@@ -166,26 +166,33 @@ class IndianNBFCComplianceEngine:
 
 engine = IndianNBFCComplianceEngine(model)
 # =====================================================================
-# 3. MASS PORTFOLIO GENERATOR (Bypasses syntax dictionary failures)
+# 3. FIXED BULK DATA GENERATOR (All arrays match exactly 1,000 rows)
 # =====================================================================
 @st.cache_data
 def generate_bulk_indian_nbfc_ledger(num_accounts=1000):
     np.random.seed(42)
+    
+    # 1. Statutory Product Mix Array Profiles
     loan_types = ["home_loan", "gold_loan", "bike_loan", "credit_card", "personal_loan"]
     chosen_types = np.random.choice(loan_types, size=num_accounts, p=[0.25, 0.20, 0.15, 0.25, 0.15])
     account_ids = [f"ACC-{10000 + i}" for i in range(num_accounts)]
     
-    amounts, limits = [], []
+    # 2. Vector Tracking Repayments (RBI PAY_0 Index Scale Map)
+    pay_choices = [0, 1, 2, 3, 4]
+    pay_indexes = np.random.choice(pay_choices, size=num_accounts, p=[0.85, 0.07, 0.04, 0.03, 0.01])
+    
+    # 3. Standalone Base Core Variables
     bureau_scores = np.random.randint(550, 850, size=num_accounts)
     monthly_incomes = np.random.choice([25000.0, 45000.0, 65000.0, 85000.0, 120000.0, 180000.0], size=num_accounts)
     dtis = np.round(np.random.uniform(0.10, 0.65, size=num_accounts), 2)
-    ltvs, collateral_values = [], []
     
-    # Generate realistic RBI-scaled payment delays (PAY_0 index values 0 through 4)
-    pay_choices = [0, 1, 2, 3, 4]
-    pay_indexes = np.random.choice(pay_choices, size=num_accounts, p=[0.85, 0.07, 0.04, 0.03, 0.01])
+    # 4. Sequenced Data Collectors Instantiation
+    amounts = []
+    limits = []
+    ltvs = []
+    collateral_values = []
 
-    # Locate this specific loop block inside the template engine generator function:
+    # 5. Row-By-Row Allocation Loops
     for i in range(num_accounts):
         p_type = chosen_types[i]
         
@@ -193,50 +200,51 @@ def generate_bulk_indian_nbfc_ledger(num_accounts=1000):
             lim = float(np.random.randint(2500000, 9500000))
             amt = lim * np.random.uniform(0.80, 0.98)
             ltv = round(amt / lim, 2)
-            c_val = round(amt / 0.70, 2)  # Property value
+            c_val = round(amt / 0.70, 2)  # Secured property asset backing
         elif p_type == "gold_loan":
             lim = float(np.random.randint(50000, 500000))
             amt = lim
             ltv = round(np.random.choice([0.65, 0.70, 0.74, 0.79], p=[0.4, 0.3, 0.2, 0.1]), 2)
-            c_val = round(amt / ltv, 2)   # Gold value
+            c_val = round(amt / ltv, 2)   # Secured physical gold backing
         elif p_type == "bike_loan":
-            # =====================================================================
-            # BIKE HYPOTHECATION RULE: The bike itself serves as collateral asset backing
-            # =====================================================================
             lim = float(np.random.randint(70000, 180000))
             amt = lim * np.random.uniform(0.85, 0.95)
             ltv = round(amt / lim, 2)
-            c_val = round(amt * np.random.uniform(1.10, 1.30), 2)  # Market value of physical bike
-        else: 
-            # =====================================================================
-            # UNSECURED FACILITIES: Credit Cards & Personal Loans have zero collateral
-            # =====================================================================
+            c_val = round(amt * np.random.uniform(1.10, 1.30), 2)  # Secured vehicle value
+        else: # UNSECURED FACILITIES: Credit Cards & Personal Loans
             lim = float(np.random.randint(20000, 400000))
             amt = lim * np.random.uniform(0.10, 0.85)
-            ltv = 0.00   
-            c_val = 0.00  # Enforces absolute 0 on data spreadsheets
+            ltv = 0.00   # Force absolute 0 for clean unsecured structures
+            c_val = 0.00  # Force absolute 0 for clean unsecured structures
             
-        amounts.append(round(amt, 2))
-        limits.append(lim)
-        ltvs.append(ltv)
-        collateral_values.append(c_val)
-            
+        # Forces parallel length consistency across every array index loop step
         amounts.append(round(amt, 2))
         limits.append(lim)
         ltvs.append(ltv)
         collateral_values.append(c_val)
 
+    # 6. Build final programmatic DataFrame structure
     return pd.DataFrame({
-        "account_id": account_ids, "product_type": chosen_types, "LIMIT_BAL": limits, "BILL_AMT1": amounts,
-        "PAY_0": pay_indexes, "bureau_score": bureau_scores, "monthly_income": monthly_incomes, 
-        "debt_to_income": dtis, "ltv_ratio": ltvs, "collateral_val": collateral_values, "religion": ["Non-Disclosed"] * num_accounts
+        "account_id": account_ids,
+        "product_type": chosen_types,
+        "LIMIT_BAL": limits,
+        "BILL_AMT1": amounts,
+        "PAY_0": pay_indexes,
+        "bureau_score": bureau_scores,
+        "monthly_income": monthly_incomes,
+        "debt_to_income": dtis,
+        "ltv_ratio": ltvs,
+        "collateral_val": collateral_values,
+        "religion": ["Non-Disclosed"] * num_accounts
     })
 
 bulk_sample_df = generate_bulk_indian_nbfc_ledger(num_accounts=1000)
 
 st.download_button(
     label="⬇️ Download RBI-Compliant Bulk Ledger Template (1,000 Accounts)",
-    data=bulk_sample_df.to_csv(index=False), file_name="rbi_nbfc_bulk_ledger.csv", mime="text/csv"
+    data=bulk_sample_df.to_csv(index=False),
+    file_name="rbi_nbfc_bulk_ledger.csv",
+    mime="text/csv"
 )
 
 uploaded_file = st.file_uploader("Upload Core Banking Indian Portfolio CSV Ledger", type=["csv"])
