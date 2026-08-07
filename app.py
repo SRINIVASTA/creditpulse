@@ -39,36 +39,90 @@ cleaner = ComplianceFilter()
 engine = ComplianceRiskEngine(model)
 
 # =====================================================================
-# 2. PROGRAMMATIC DATA INGESTION (Completely removes raw dictionary risks)
+# 2. DYNAMIC BULK SAMPLE GENERATOR (Simulates a 1,000-Row NBFC Ledger)
 # =====================================================================
 st.markdown("### 🛠️ Data Ingestion Desk")
 
-# Safely build the data vectors procedurally
-ids = ["HL-901", "GL-902", "BL-903", "CC-904", "PL-905"]
-types = ["home_loan", "gold_loan", "bike_loan", "credit_card", "personal_loan"]
-amounts = [4500000.0, 300000.0, 120000.0, 250000.0, 500000.0]
-scores = [765, 680, 710, 740, 610]
-incomes = [115000.0, 48000.0, 28000.0, 85000.0, 55000.0]
-dtis = [0.42, 0.25, 0.30, 0.15, 0.55]
-ltvs = [0.65, 0.79, 0.85, 0.00, 0.00]
-colvals = [6900000.0, 380000.0, 140000.0, 0.0, 0.0]
-religions = ["Non-Disclosed"] * 5
+@st.cache_data
+def generate_bulk_nbfc_template(num_accounts=1000):
+    """Dynamically generates massive synthetic data files for stress testing charts"""
+    np.random.seed(42)
+    
+    # 1. Product Distribution Matrix
+    loan_types = ["home_loan", "gold_loan", "bike_loan", "credit_card", "personal_loan"]
+    chosen_types = np.random.choice(loan_types, size=num_accounts, p=[0.25, 0.20, 0.15, 0.25, 0.15])
+    
+    # 2. Build tracking serial IDs
+    account_ids = [f"ACC-{10000 + i}" for i in range(num_accounts)]
+    
+    # 3. Instantiate parallel vector blocks
+    amounts = []
+    bureau_scores = np.random.randint(550, 850, size=num_accounts)
+    monthly_incomes = np.random.choice([30000, 45000, 65000, 85000, 120000, 180000], size=num_accounts)
+    dtis = np.round(np.random.uniform(0.10, 0.65, size=num_accounts), 2)
+    ltvs = []
+    collateral_values = []
+    
+    # 4. Generate realistic repayment tracking parameters (RBI DPD Skew)
+    # 85% of accounts are clean (0 DPD), 10% are early warnings (1-90 DPD), 5% are explicit NPAs (>90 DPD)
+    dpd_choices = [0, np.random.randint(1, 90), np.random.randint(91, 1200)]
+    dpds = np.random.choice(dpd_choices, size=num_accounts, p=[0.85, 0.10, 0.05])
+    
+    # Force programmatic day counts to be randomly distributed within their risk segments
+    for idx, d_val in enumerate(dpds):
+        if d_val > 0 and d_val < 90:
+            dpds[idx] = int(np.random.randint(1, 90))
+        elif d_val >= 90:
+            dpds[idx] = int(np.random.randint(91, 1150))
 
-sample_df = pd.DataFrame()
-sample_df["account_id"] = ids
-sample_df["product_type"] = types
-sample_df["loan_amount"] = amounts
-sample_df["bureau_score"] = scores
-sample_df["monthly_income"] = incomes
-sample_df["debt_to_income"] = dtis
-sample_df["ltv_ratio"] = ltvs
-sample_df["collateral_val"] = colvals
-sample_df["religion"] = religions
+    # 5. Populate structural properties based on product criteria guidelines
+    for i in range(num_accounts):
+        p_type = chosen_types[i]
+        
+        if p_type == "home_loan":
+            amt = float(np.random.randint(2500000, 9500000))
+            ltv = round(np.random.uniform(0.60, 0.85), 2)
+            c_val = round(amt / ltv, 2)
+        elif p_type == "gold_loan":
+            amt = float(np.random.randint(50000, 500000))
+            # Intentionally inject occasional LTV cap limit breaches past 75% for rule testing
+            ltv = round(np.random.choice([0.65, 0.70, 0.73, 0.79], p=[0.4, 0.3, 0.2, 0.1]), 2)
+            c_val = round(amt / ltv, 2)
+        elif p_type == "bike_loan":
+            amt = float(np.random.randint(70000, 180000))
+            ltv = round(np.random.uniform(0.70, 0.90), 2)
+            c_val = round(amt / ltv, 2)
+        else: # Credit Card & Personal Loans are fully unsecured assets
+            amt = float(np.random.randint(20000, 400000))
+            ltv = 0.00
+            c_val = 0.00
+            
+        amounts.append(amt)
+        ltvs.append(ltv)
+        collateral_values.append(c_val)
+
+    # 6. Compile into structural DataFrame
+    bulk_df = pd.DataFrame({
+        "account_id": account_ids,
+        "product_type": chosen_types,
+        "loan_amount": amounts,
+        "bureau_score": bureau_scores,
+        "monthly_income": monthly_incomes,
+        "debt_to_income": dtis,
+        "ltv_ratio": ltvs,
+        "collateral_val": collateral_values,
+        "dpd": dpds,
+        "religion": ["Non-Disclosed"] * num_accounts
+    })
+    return bulk_df
+
+# Generate a high-volume sample template instantly 
+bulk_sample_df = generate_bulk_nbfc_template(num_accounts=1000)
 
 st.download_button(
-    label="⬇️ Download RBI-Compliant Multi-Asset Schema Template",
-    data=sample_df.to_csv(index=False),
-    file_name="rbi_nbfc_schema.csv",
+    label="⬇️ Download Bulk NBFC Core Ledger Template (1,000 Accounts)",
+    data=bulk_sample_df.to_csv(index=False),
+    file_name="nbfc_bulk_portfolio_ledger.csv",
     mime="text/csv"
 )
 
