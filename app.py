@@ -279,6 +279,7 @@ if uploaded_file is not None:
         with kpi_col3:
             st.metric("Risk Weighted Assets (RWA)", f"₹{total_rwa:,.2f}")
         with kpi_col4:
+            # RBI Mandates a minimum 15% CRAR capitalization for asset lending NBFCs
             status_tag = "✅ COMPLIANT" if computed_crar >= 15.0 else "⚠️ CAPITAL DEFICIT"
             st.metric("Capital Adequacy Ratio (CRAR)", f"{computed_crar:.2f}%", status_tag)
             
@@ -309,7 +310,7 @@ if uploaded_file is not None:
                 title="RBI Asset Delinquency Core Projections Matrix",
                 labels={"EAD": "Exposure at Default (₹)", "RBI_Mandated_Provision": "Statutory Provision Pool (₹)"},
                 template="plotly_white",
-                color_discrete_map={"Performing": "#10B981", "Non-Performing Asset (NPA)": "#EF4444"}
+                color_discrete_map={"Performing": "#10B981", "Non-Performing Asset (NPA)": "#EF4444", "Regulatory Violation": "#7C3AED"}
             )
             st.plotly_chart(fig_ecl, use_container_width=True)
             
@@ -324,7 +325,10 @@ if uploaded_file is not None:
         st.markdown("### 🔍 Granular Account Audit Trail & Key Fact Statement (KFS) Dashboard")
         selected_id = st.selectbox("Select Target Account ID for review:", filtered_results['account_id'].unique())
         
-        client_metrics = filtered_results[filtered_results['account_id'] == selected_id].iloc
+        # =====================================================================
+        # CORE FIX: Append [0] to extract a real vector row instead of an indexing pointer
+        # =====================================================================
+        client_metrics = filtered_results[filtered_results['account_id'] == selected_id].iloc[0]
         target_row = cleaned_df[cleaned_df['account_id'].astype(str) == selected_id].drop(columns=['account_id'])
         
         columns = [c for c in target_row.columns if c not in ['product_type', 'account_id']]
