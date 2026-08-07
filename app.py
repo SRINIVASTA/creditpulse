@@ -1,7 +1,9 @@
 import os
 import sys
 
-# Dynamic root folder injection layer to completely prevent ModuleNotFoundError on Streamlit Cloud
+# =====================================================================
+# 1. BULLETPROOF PATH INJECTION (Completely blocks ModuleNotFoundError)
+# =====================================================================
 root_path = os.path.dirname(os.path.abspath(__file__))
 if root_path not in sys.path:
     sys.path.insert(0, root_path)
@@ -42,18 +44,20 @@ cleaner = ComplianceFilter()
 engine = ComplianceRiskEngine(model)
 logger = ImmutableAuditLogger()
 
-# 1. Provide a Quick Download for a Test CSV Template
+# =====================================================================
+# 2. VALIDATED TEMPLATE SYSTEM (Completely populated, no trailing colons)
+# =====================================================================
 st.markdown("### 🛠️ Ingestion Control Center")
 sample_data = pd.DataFrame({
     'account_id': ['ACC-101', 'ACC-102', 'ACC-103', 'ACC-104', 'ACC-105'],
     'product_type': ['home_loan', 'gold_loan', 'bike_loan', 'credit_card', 'personal_loan'],
-    'loan_amount':,
-    'bureau_score':,
-    'monthly_income':,
+    'loan_amount': [4500000, 600000, 125000, 250000, 400000],
+    'bureau_score': [765, 680, 710, 740, 610],
+    'monthly_income': [115000, 48000, 28000, 85000, 55000],
     'debt_to_income': [0.42, 0.25, 0.30, 0.15, 0.55],
     'ltv_ratio': [0.65, 0.79, 0.85, 0.00, 0.00],  # Note ACC-102 intentionally breaches the RBI 75% gold LTV limit
-    'collateral_val':,
-    'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed'] # Prohibited Demographic data
+    'collateral_val': [6923000, 759000, 147000, 0, 0],
+    'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed']
 })
 
 st.download_button(
@@ -63,7 +67,7 @@ st.download_button(
     mime="text/csv"
 )
 
-# 2. File Upload Interface Layer
+# 3. File Upload Interface Layer
 uploaded_file = st.file_uploader("Upload Active Portfolio Transaction Ledger Document", type=["csv"])
 
 if uploaded_file is not None:
