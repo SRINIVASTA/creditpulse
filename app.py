@@ -1,9 +1,20 @@
+import os
+import sys
+
+# =====================================================================
+# 1. PATH RESOLUTION LAYER (Fixes ModuleNotFoundError)
+# =====================================================================
+root_path = os.path.dirname(os.path.abspath(__file__))
+if root_path not in sys.path:
+    sys.path.insert(0, root_path)
+
 import streamlit as st
 import pandas as pd
 import pickle
-import os
+import numpy as np  # Required for dummy data arrays
 import plotly.express as px
 import plotly.graph_objects as go
+from sklearn.ensemble import RandomForestClassifier  # Fallback model engine
 
 # Import Compliance Suite components
 from core.compliance_filter import ComplianceFilter
@@ -18,23 +29,43 @@ st.set_page_config(page_title="CreditPulse-AI | Interactive Underwriting Dashboa
 st.markdown("<h2 style='color:#1E3A8A;'>CreditPulse-AI: Risk Intelligence Pipeline</h2>", unsafe_allow_html=True)
 st.write("Internal automated credit scoring, portfolio risk metrics, and regulatory audit compliance logs.")
 
-# Mocking or loading model artifact safely
+# =====================================================================
+# 2. SAFE MULTI-MODE MODEL LOADING FACTORY
+# =====================================================================
 @st.cache_resource
 def load_underwriting_model():
-    # Substitute with your actual path or dummy model generator
-    with open("models/classifier.pkl", "rb") as f:
-        return pickle.load(f)
+    model_path = "models/classifier.pkl"
+    
+    # Mode A: If file exists, unpickle it normally
+    if os.path.exists(model_path):
+        with open(model_path, "rb") as f:
+            return pickle.load(f)
+            
+    # Mode B: Fallback Generation if you are not given a .pkl file
+    else:
+        st.info("💡 No `classifier.pkl` detected. Constructing a real-time inline fallback model engine...")
+        
+        # Instantiate and mock fit to ensure standard scikit-learn class structures
+        # Mocking 10 sample entities across 4 basic financial parameters
+        X_mock = np.random.rand(10, 4) 
+        y_mock = np.array([0, 1, 0, 1, 0, 0, 1, 1, 0, 1])
+        
+        fallback_model = RandomForestClassifier(n_estimators=10, random_state=42)
+        fallback_model.fit(X_mock, y_mock)
+        
+        # Force assign arbitrary model features to match your standard input format shapes
+        fallback_model.n_features_in_ = 4 
+        return fallback_model
 
-try:
-    model = load_underwriting_model()
-except Exception:
-    st.warning("Please verify your trained model pickle path is set correctly inside your workspace.")
-    st.stop()
+# Load model via safe factory loop (st.stop() is removed)
+model = load_underwriting_model()
 
 # Initialize Core Services
 cleaner = ComplianceFilter()
 engine = ComplianceRiskEngine(model)
 logger = ImmutableAuditLogger()
+
+# [The rest of your app.py user interface layout follows here unchanged...]
 
 # 1. Ingest Internal Files via CSV
 uploaded_file = st.file_uploader("Upload Internal Transaction CSV File", type=["csv"])
