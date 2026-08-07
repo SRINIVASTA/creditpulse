@@ -321,7 +321,8 @@ if uploaded_file is not None:
         st.markdown("### 🔍 Granular Account Audit Trail & Key Fact Statement (KFS) Dashboard")
         selected_id = st.selectbox("Select Target Account ID for review:", filtered_results['account_id'].unique())
         
-        client_metrics = filtered_results[filtered_results['account_id'] == selected_id].iloc
+        client_metrics = filtered_results[filtered_results['account_id'] == selected_id].iloc[0]
+
         target_row = cleaned_df[cleaned_df['account_id'].astype(str) == selected_id].drop(columns=['account_id'])
         
         try:
