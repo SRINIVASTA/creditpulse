@@ -50,8 +50,10 @@ sample_data = pd.DataFrame({
     'loan_amount':,
     'bureau_score':,
     'monthly_income':,
+    'debt_to_income': [0.42, 0.25, 0.30, 0.15, 0.55],
     'ltv_ratio': [0.65, 0.79, 0.85, 0.00, 0.00],  # Note ACC-102 intentionally breaches the RBI 75% gold LTV limit
-    'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed'] # Restricted Data
+    'collateral_val':,
+    'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed'] # Prohibited Demographic data
 })
 
 st.download_button(
