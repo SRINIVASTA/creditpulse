@@ -50,7 +50,7 @@ sample_data = pd.DataFrame({
     'loan_amount':,
     'bureau_score':,
     'monthly_income':,
-    'ltv_ratio': [0.70, 0.79, 0.85, 0.00, 0.00],  # Note ACC-102 intentionally breaches the RBI 75% gold LTV limit
+    'ltv_ratio': [0.65, 0.79, 0.85, 0.00, 0.00],  # Note ACC-102 intentionally breaches the RBI 75% gold LTV limit
     'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed'] # Restricted Data
 })
 
