@@ -193,25 +193,33 @@ def generate_bulk_indian_nbfc_ledger(num_accounts=1000):
             lim = float(np.random.randint(2500000, 9500000))
             amt = lim * np.random.uniform(0.80, 0.98)
             ltv = round(amt / lim, 2)
-            c_val = round(amt / 0.70, 2)  # Secured property asset backing
+            c_val = round(amt / 0.70, 2)  # Property value
         elif p_type == "gold_loan":
             lim = float(np.random.randint(50000, 500000))
             amt = lim
             ltv = round(np.random.choice([0.65, 0.70, 0.74, 0.79], p=[0.4, 0.3, 0.2, 0.1]), 2)
-            c_val = round(amt / ltv, 2)   # Secured physical gold backing
+            c_val = round(amt / ltv, 2)   # Gold value
         elif p_type == "bike_loan":
+            # =====================================================================
+            # BIKE HYPOTHECATION RULE: The bike itself serves as collateral asset backing
+            # =====================================================================
             lim = float(np.random.randint(70000, 180000))
             amt = lim * np.random.uniform(0.85, 0.95)
             ltv = round(amt / lim, 2)
-            c_val = round(amt / 0.80, 2)  # Secured vehicle hypothecation backing
+            c_val = round(amt * np.random.uniform(1.10, 1.30), 2)  # Market value of physical bike
         else: 
             # =====================================================================
-            # STRENGTHENED RULE: Unsecured items must NOT carry collateral value
+            # UNSECURED FACILITIES: Credit Cards & Personal Loans have zero collateral
             # =====================================================================
             lim = float(np.random.randint(20000, 400000))
             amt = lim * np.random.uniform(0.10, 0.85)
-            ltv = 0.00   # Force absolute 0 for Credit Cards & Personal Loans
-            c_val = 0.00  # Force absolute 0 for Credit Cards & Personal Loans
+            ltv = 0.00   
+            c_val = 0.00  # Enforces absolute 0 on data spreadsheets
+            
+        amounts.append(round(amt, 2))
+        limits.append(lim)
+        ltvs.append(ltv)
+        collateral_values.append(c_val)
             
         amounts.append(round(amt, 2))
         limits.append(lim)
