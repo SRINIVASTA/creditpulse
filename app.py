@@ -1,9 +1,6 @@
 import os
 import sys
 
-# =====================================================================
-# 1. BULLETPROOF PATH INJECTION (Completely blocks ModuleNotFoundError)
-# =====================================================================
 root_path = os.path.dirname(os.path.abspath(__file__))
 if root_path not in sys.path:
     sys.path.insert(0, root_path)
@@ -15,134 +12,151 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.ensemble import RandomForestClassifier
 
-# Safe local package imports
 from core.compliance_filter import ComplianceFilter
 from core.risk_engine import ComplianceRiskEngine
 from core.explainability import UnderwritingExplainer
 from core.audit_logger import ImmutableAuditLogger
 from core.report_generator import ComplianceReportGenerator
 
-st.set_page_config(page_title="CreditPulse-AI | NBFC Audit Portfolio Sandbox", layout="wide")
+st.set_page_config(page_title="CreditPulse-AI | NBFC Regulatory Audit Engine", layout="wide")
 
-# Dashboard Headers
-st.markdown("<h2 style='color:#1E3A8A;'>CreditPulse-AI: NBFC Risk Intelligence Pipeline</h2>", unsafe_allow_html=True)
-st.write("Dynamic RBI portfolio auditing, multi-asset scorecards, and regulatory compliance logging.")
+st.markdown("<h2 style='color:#1E3A8A;'>CreditPulse-AI: NBFC Regulatory Audit Dashboard</h2>", unsafe_allow_html=True)
+st.write("Statutory Asset Classification, Provisioning Reserves Tracker, and Capital Adequacy Controls.")
 
-# Multi-Mode Model Initialization Engine
 @st.cache_resource
 def load_underwriting_model():
     X_mock = np.random.rand(10, 5)
-    y_mock = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+    y_mock = np.array()
     fallback_model = RandomForestClassifier(n_estimators=10, random_state=42)
     fallback_model.fit(X_mock, y_mock)
     return fallback_model
 
 model = load_underwriting_model()
-
-# Core Services Instantiation
 cleaner = ComplianceFilter()
 engine = ComplianceRiskEngine(model)
-logger = ImmutableAuditLogger()
 
-# =====================================================================
-# 2. VALIDATED TEMPLATE SYSTEM (Completely populated, no trailing colons)
-# =====================================================================
-st.markdown("### 🛠️ Ingestion Control Center")
+# 1. Template Control Download Block
+st.markdown("### 🛠️ Data Ingestion Desk")
 sample_data = pd.DataFrame({
-    'account_id': ['ACC-101', 'ACC-102', 'ACC-103', 'ACC-104', 'ACC-105'],
+    'account_id': ['HL-901', 'GL-902', 'BL-903', 'CC-904', 'PL-905'],
     'product_type': ['home_loan', 'gold_loan', 'bike_loan', 'credit_card', 'personal_loan'],
-    'loan_amount': [4500000, 600000, 125000, 250000, 400000],
-    'bureau_score': [765, 680, 710, 740, 610],
-    'monthly_income': [115000, 48000, 28000, 85000, 55000],
-    'debt_to_income': [0.42, 0.25, 0.30, 0.15, 0.55],
-    'ltv_ratio': [0.65, 0.79, 0.85, 0.00, 0.00],  # Note ACC-102 intentionally breaches the RBI 75% gold LTV limit
-    'collateral_val': [6923000, 759000, 147000, 0, 0],
-    'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed']
+    'loan_amount':,
+    'bureau_score':,
+    'monthly_income':,
+    'ltv_ratio': [0.65, 0.79, 0.85, 0.00, 0.00],
+    'collateral_val':,
+    'religion': ['Non-Disclosed']*5
 })
 
 st.download_button(
-    label="⬇️ Download Sample NBFC Multi-Loan CSV Dataset",
+    label="⬇️ Download RBI-Compliant Multi-Asset Schema Template",
     data=sample_data.to_csv(index=False),
-    file_name="nbfc_portfolio_sample.csv",
+    file_name="rbi_nbfc_schema.csv",
     mime="text/csv"
 )
 
-# 3. File Upload Interface Layer
-uploaded_file = st.file_uploader("Upload Active Portfolio Transaction Ledger Document", type=["csv"])
+uploaded_file = st.file_uploader("Upload Core Banking Portfolio CSV Ledger", type=["csv"])
 
 if uploaded_file is not None:
     raw_df = pd.read_csv(uploaded_file)
-    
-    # Execute Demographic Bias Audit Scans
     cleaned_df, stripped_cols = cleaner.audit_and_clean(raw_df)
+    
     if stripped_cols:
-        st.info(f"🛡️ **RBI Fair Practice Filter Active**: Extracted non-permissible features from evaluation modeling: {stripped_cols}")
+        st.info(f"🛡️ **RBI Fair Practice Filter Active**: Cleaned restricted columns from data stack: {stripped_cols}")
         
     if 'loan_amount' in cleaned_df.columns and 'account_id' in cleaned_df.columns:
-        # Run analytical evaluation calculations across the portfolio
         results = engine.calculate_ecl(cleaned_df.drop(columns=['account_id']), 'loan_amount')
         results['account_id'] = cleaned_df['account_id'].astype(str)
         
-        # Product type dynamic filters UI
-        available_segments = list(results['product_type'].unique())
-        selected_segments = st.multiselect("🎛️ Filter View by Asset Segment Profile:", available_segments, default=available_segments)
+        # =====================================================================
+        # STATUTORY TOP TRACKER BANNER LAYER (Capital Adequacy & CRAR Sandbox)
+        # =====================================================================
+        st.markdown("### 🏛️ Capital Adequacy & Reserve Provisioning Tracker")
         
+        total_portfolio_ead = results['EAD'].sum()
+        total_provisions_required = results['RBI_Mandated_Provision'].sum()
+        total_rwa = results['RWA'].sum()
+        
+        # Simulate NBFC Core Owned Capital Tier for CRAR illustration
+        nbfc_own_tier1_capital = 12000000  # ₹1.2 Crore Mock Base Capital Buffer
+        computed_crar = (nbfc_own_tier1_capital / total_rwa) * 100 if total_rwa > 0 else 100
+        
+        kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+        with kpi_col1:
+            st.metric("Total Exposure (EAD)", f"₹{total_portfolio_ead:,.2f}")
+        with kpi_col2:
+            st.metric("RBI Mandated Provisions Pool", f"₹{total_provisions_required:,.2f}", delta="- Profit & Loss", delta_color="inverse")
+        with kpi_col3:
+            st.metric("Risk Weighted Assets (RWA)", f"₹{total_rwa:,.2f}")
+        with kpi_col4:
+            # RBI Mandates minimum 15% CRAR capitalization for Middle/Upper Layer NBFCs
+            status_tag = "✅ COMPLIANT" if computed_crar >= 15.0 else "⚠️ CAPITAL DEFICIT"
+            st.metric("Capital Adequacy Ratio (CRAR)", f"{computed_crar:.2f}%", status_tag)
+            
+        st.markdown("---")
+        
+        # --- PORTFOLIO DYNAMIC SEGMENT INTERACTION ---
+        available_segments = list(results['product_type'].unique())
+        selected_segments = st.multiselect("🎛️ Select Active Audit Portfolios:", available_segments, default=available_segments)
         filtered_results = results[results['product_type'].isin(selected_segments)]
         
-        # --- UI LAYOUT SECTION 1: VISUAL ANALYTICS ---
-        st.markdown("### 📊 Portfolio Analytics Workbench")
+        # --- VISUAL ANALYTICS ---
+        st.markdown("### 📊 Portfolio Asset Classification Profiler")
         col1, col2 = st.columns(2)
         
+        # Update specific sorting keys to ensure chart remains orderly
         with col1:
             fig_pd = px.histogram(
-                filtered_results, x="Probability_of_Default_PD", color="Risk_Classification",
-                title="Portfolio Probability of Default (PD) Profile Dispersion",
-                color_discrete_map={"Healthy (Good)": "#10B981", "High Risk (Bad)": "#EF4444", "CRITICAL BREACH: LTV > 75%": "#7C3AED"}
+                filtered_results, x="Risk_Classification", y="RBI_Mandated_Provision", color="product_type",
+                title="Statutory Provision Burden Distribution by RBI Bucket Status",
+                labels={"Risk_Classification": "RBI Asset Category", "RBI_Mandated_Provision": "Required Provisions (₹)"},
+                template="plotly_white"
             )
             st.plotly_chart(fig_pd, use_container_width=True)
             
         with col2:
-            fig_ecl = px.box(
-                filtered_results, x="product_type", y="Expected_Credit_Loss_ECL", color="Risk_Classification",
-                title="Expected Credit Loss (ECL) Risk Exposure by Product Line",
-                color_discrete_map={"Healthy (Good)": "#10B981", "High Risk (Bad)": "#EF4444", "CRITICAL BREACH: LTV > 75%": "#7C3AED"}
+            fig_ecl = px.scatter(
+                filtered_results, x="EAD", y="RBI_Mandated_Provision", color="Risk_Classification", size="RWA",
+                title="Exposure vs Mandated Provision Weight Projections",
+                labels={"EAD": "Exposure at Default", "RBI_Mandated_Provision": "Required Reserves"},
+                template="plotly_white"
             )
             st.plotly_chart(fig_ecl, use_container_width=True)
             
-        st.subheader("📋 Active Asset Evaluation Ledger Summary")
-        st.dataframe(filtered_results[['account_id', 'product_type', 'Probability_of_Default_PD', 'Expected_Credit_Loss_ECL', 'Risk_Classification']], use_container_width=True)
+        st.subheader("📋 Centralized Asset Regulatory Grading Registry")
+        st.dataframe(
+            filtered_results[['account_id', 'product_type', 'EAD', 'Secured_Exposure', 'Unsecured_Exposure', 'RBI_Mandated_Provision', 'RWA', 'Risk_Classification']], 
+            use_container_width=True
+        )
         
-        # --- UI LAYOUT SECTION 2: CLIENT REJECTION REASON CODE EXPLORER ---
+        # --- INDIVIDUAL CLIENT EXPLORER ---
         st.markdown("---")
-        st.markdown("### 🔍 Individual Audit Workbench & Key Fact Statement (KFS) Analyzer")
-        
+        st.markdown("### 🔍 Granular Account Audit Trail")
         selected_id = st.selectbox("Select Target Account ID for review:", filtered_results['account_id'].unique())
         
-        client_metrics = filtered_results[filtered_results['account_id'] == selected_id].iloc[0]
+        client_metrics = filtered_results[filtered_results['account_id'] == selected_id].iloc
         target_row = cleaned_df[cleaned_df['account_id'].astype(str) == selected_id].drop(columns=['account_id'])
         
-        # Process SHAP proxy values
         explainer = UnderwritingExplainer(model, cleaned_df.drop(columns=['account_id']))
         feature_weights = explainer.generate_force_plot_data(target_row)
         
         features_df = pd.DataFrame({
-            'Underwriting Factor Metric': list(feature_weights.keys()),
-            'Risk Contribution Weight': list(feature_weights.values())
-        }).sort_values(by="Risk Contribution Weight")
-        
-        features_df['Color'] = features_df['Risk Contribution Weight'].apply(lambda x: '#EF4444' if x > 0 else '#10B981')
+            'Underwriting Metric Factor': list(feature_weights.keys()),
+            'Risk Weight Attribution': list(feature_weights.values())
+        }).sort_values(by="Risk Weight Attribution")
+        features_df['Color'] = features_df['Risk Weight Attribution'].apply(lambda x: '#EF4444' if x > 0 else '#10B981')
         
         fig_weights = go.Figure(go.Bar(
-            x=features_df['Risk Contribution Weight'], y=features_df['Underwriting Factor Metric'],
+            x=features_df['Risk Weight Attribution'], y=features_df['Underwriting Metric Factor'],
             orientation='h', marker_color=features_df['Color']
         ))
-        fig_weights.update_layout(title=f"Explainable AI Reason Codes (RBI Transparency Rule) for {selected_id}", template="plotly_white", height=300)
+        fig_weights.update_layout(title=f"Reason Codes Attribution Weights for Account: {selected_id}", template="plotly_white", height=300)
         st.plotly_chart(fig_weights, use_container_width=True)
         
-        if st.button(f"Generate & Freeze Statutory PDF Audit Report for Account {selected_id}"):
+        if st.button(f"Compile Regulatory Audit Records for Account {selected_id}"):
             pdf_path = ComplianceReportGenerator.generate_pdf(
                 selected_id, client_metrics['Probability_of_Default_PD'], 
-                client_metrics['Expected_Credit_Loss_ECL'], client_metrics['Risk_Classification'], feature_weights
+                client_metrics['RBI_Mandated_Provision'], client_metrics['Risk_Classification'], feature_weights
             )
             with open(pdf_path, "rb") as f:
                 st.download_button("⬇️ Download Official Compliance Audit Document", data=f, file_name=f"Report_{selected_id}.pdf", mime="application/pdf")
