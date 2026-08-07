@@ -2,7 +2,7 @@ import os
 import sys
 
 # =====================================================================
-# 1. PATH RESOLUTION LAYER (Fixes ModuleNotFoundError)
+# 1. BULLETPROOF PATH RESOLUTION LAYER (Prevents ModuleNotFoundError)
 # =====================================================================
 root_path = os.path.dirname(os.path.abspath(__file__))
 if root_path not in sys.path:
@@ -24,7 +24,7 @@ from core.report_generator import ComplianceReportGenerator
 st.set_page_config(page_title="CreditPulse-AI | NBFC Regulatory Audit Engine", layout="wide")
 
 st.markdown("<h2 style='color:#1E3A8A;'>CreditPulse-AI: NBFC Regulatory Audit Dashboard</h2>", unsafe_allow_html=True)
-st.write("Statutory Asset Classification, Provisioning Reserves Tracker, and Capital Adequacy Controls.")
+st.write("Statutory Asset Classification, Provisioning Reserves Tracker, and Capital Adequacy Controls (RBI IRACP Aligned).")
 
 @st.cache_resource
 def load_underwriting_model():
@@ -39,13 +39,13 @@ cleaner = ComplianceFilter()
 engine = ComplianceRiskEngine(model)
 
 # =====================================================================
-# 2. DYNAMIC BULK SAMPLE GENERATOR (Simulates a 1,000-Row NBFC Ledger)
+# 2. PROGRAMMATIC DATA INGESTION DESK (No raw dictionary risk)
 # =====================================================================
 st.markdown("### 🛠️ Data Ingestion Desk")
 
 @st.cache_data
 def generate_bulk_nbfc_template(num_accounts=1000):
-    """Dynamically generates massive synthetic data files for stress testing charts"""
+    """Dynamically manufactures massive synthetic data files for testing charts"""
     np.random.seed(42)
     
     # 1. Product Distribution Matrix
@@ -55,27 +55,25 @@ def generate_bulk_nbfc_template(num_accounts=1000):
     # 2. Build tracking serial IDs
     account_ids = [f"ACC-{10000 + i}" for i in range(num_accounts)]
     
-    # 3. Instantiate parallel vector blocks
+    # 3. Instantiate parallel vectors
     amounts = []
     bureau_scores = np.random.randint(550, 850, size=num_accounts)
-    monthly_incomes = np.random.choice([30000, 45000, 65000, 85000, 120000, 180000], size=num_accounts)
+    monthly_incomes = np.random.choice([25000.0, 45000.0, 65000.0, 85000.0, 120000.0, 180000.0], size=num_accounts)
     dtis = np.round(np.random.uniform(0.10, 0.65, size=num_accounts), 2)
     ltvs = []
     collateral_values = []
     
     # 4. Generate realistic repayment tracking parameters (RBI DPD Skew)
-    # 85% of accounts are clean (0 DPD), 10% are early warnings (1-90 DPD), 5% are explicit NPAs (>90 DPD)
     dpd_choices = [0, np.random.randint(1, 90), np.random.randint(91, 1200)]
     dpds = np.random.choice(dpd_choices, size=num_accounts, p=[0.85, 0.10, 0.05])
     
-    # Force programmatic day counts to be randomly distributed within their risk segments
     for idx, d_val in enumerate(dpds):
-        if d_val > 0 and d_val < 90:
+        if 0 < d_val < 90:
             dpds[idx] = int(np.random.randint(1, 90))
         elif d_val >= 90:
             dpds[idx] = int(np.random.randint(91, 1150))
 
-    # 5. Populate structural properties based on product criteria guidelines
+    # 5. Populate properties based on product criteria guidelines
     for i in range(num_accounts):
         p_type = chosen_types[i]
         
@@ -85,14 +83,13 @@ def generate_bulk_nbfc_template(num_accounts=1000):
             c_val = round(amt / ltv, 2)
         elif p_type == "gold_loan":
             amt = float(np.random.randint(50000, 500000))
-            # Intentionally inject occasional LTV cap limit breaches past 75% for rule testing
             ltv = round(np.random.choice([0.65, 0.70, 0.73, 0.79], p=[0.4, 0.3, 0.2, 0.1]), 2)
             c_val = round(amt / ltv, 2)
         elif p_type == "bike_loan":
             amt = float(np.random.randint(70000, 180000))
             ltv = round(np.random.uniform(0.70, 0.90), 2)
             c_val = round(amt / ltv, 2)
-        else: # Credit Card & Personal Loans are fully unsecured assets
+        else: # Credit Cards & Personal Loans are fully unsecured assets
             amt = float(np.random.randint(20000, 400000))
             ltv = 0.00
             c_val = 0.00
@@ -116,7 +113,6 @@ def generate_bulk_nbfc_template(num_accounts=1000):
     })
     return bulk_df
 
-# Generate a high-volume sample template instantly 
 bulk_sample_df = generate_bulk_nbfc_template(num_accounts=1000)
 
 st.download_button(
@@ -127,7 +123,6 @@ st.download_button(
 )
 
 uploaded_file = st.file_uploader("Upload Core Banking Portfolio CSV Ledger", type=["csv"])
-
 if uploaded_file is not None:
     raw_df = pd.read_csv(uploaded_file)
     cleaned_df, stripped_cols = cleaner.audit_and_clean(raw_df)
@@ -136,19 +131,39 @@ if uploaded_file is not None:
         st.info(f"🛡️ **RBI Fair Practice Filter Active**: Cleaned restricted columns from data stack: {stripped_cols}")
         
     if 'loan_amount' in cleaned_df.columns and 'account_id' in cleaned_df.columns:
+        # Base asset evaluations execution
         results = engine.calculate_ecl(cleaned_df.drop(columns=['account_id']), 'loan_amount')
         results['account_id'] = cleaned_df['account_id'].astype(str)
         
         # =====================================================================
-        # 3. STATUTORY TOP TRACKER BANNER LAYER
+        # 3. CRITICAL LAYOUT MODIFICATION: MULTI-SELECT FILTER PLACED ABOVE METRICS
+        # =====================================================================
+        st.markdown("### 🎛️ Dynamic Portfolio Filter Controls")
+        available_products = list(results['product_type'].unique())
+        selected_segments = st.multiselect(
+            "Filter Dashboard View by Asset Segment Profile:", 
+            options=available_products, 
+            default=available_products
+        )
+        
+        # Apply the layout slice instantly to prevent stale global values
+        filtered_results = results[results['product_type'].isin(selected_segments)]
+        
+        if filtered_results.empty:
+            st.warning("⚠️ Please select at least one asset segment profile to display banking metrics.")
+            st.stop()
+            
+        # =====================================================================
+        # 4. STATUTORY BANNER TRACKER (Reads exclusively from filtered_results)
         # =====================================================================
         st.markdown("### 🏛️ Capital Adequacy & Reserve Provisioning Tracker")
         
-        total_portfolio_ead = results['EAD'].sum()
-        total_provisions_required = results['RBI_Mandated_Provision'].sum()
-        total_rwa = results['RWA'].sum()
+        total_portfolio_ead = filtered_results['EAD'].sum()
+        total_provisions_required = filtered_results['RBI_Mandated_Provision'].sum()
+        total_rwa = filtered_results['RWA'].sum()
         
-        nbfc_own_tier1_capital = 12000000.0  
+        # Simulate NBFC Core Owned Capital Buffer Tier for CRAR metrics
+        nbfc_own_tier1_capital = 12000000.0  # ₹1.2 Crore Mock Equity Reserve
         computed_crar = (nbfc_own_tier1_capital / total_rwa) * 100 if total_rwa > 0 else 100.0
         
         kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
@@ -164,11 +179,9 @@ if uploaded_file is not None:
             
         st.markdown("---")
         
-        available_products = list(results['product_type'].unique())
-        selected_segments = st.multiselect("🎛️ Select Active Audit Portfolios:", available_products, default=available_products)
-        filtered_results = results[results['product_type'].isin(selected_segments)]
-        
-        # --- VISUAL ANALYTICS ---
+        # =====================================================================
+        # 5. VISUAL ANALYTICS WORKBENCH (Reads from filtered_results)
+        # =====================================================================
         st.markdown("### 📊 Portfolio Asset Classification Profiler")
         col1, col2 = st.columns(2)
         
@@ -196,7 +209,9 @@ if uploaded_file is not None:
             use_container_width=True
         )
         
-        # --- INDIVIDUAL CLIENT EXPLORER ---
+        # =====================================================================
+        # 6. GRANULAR AUDIT TRAIL LAYER (Reads from filtered_results)
+        # =====================================================================
         st.markdown("---")
         st.markdown("### 🔍 Granular Account Audit Trail")
         selected_id = st.selectbox("Select Target Account ID for review:", filtered_results['account_id'].unique())
@@ -204,6 +219,7 @@ if uploaded_file is not None:
         client_metrics = filtered_results[filtered_results['account_id'] == selected_id].iloc[0]
         target_row = cleaned_df[cleaned_df['account_id'].astype(str) == selected_id].drop(columns=['account_id'])
         
+        # Process SHAP data layout calculations
         explainer = UnderwritingExplainer(model, cleaned_df.drop(columns=['account_id']))
         feature_weights = explainer.generate_force_plot_data(target_row)
         
