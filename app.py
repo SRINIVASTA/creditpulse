@@ -1,12 +1,15 @@
 import os
-import sys
+import streamlit as st
 
-# =====================================================================
-# 1. PATH RESOLUTION LAYER (Fixes ModuleNotFoundError)
-# =====================================================================
-root_path = os.path.dirname(os.path.abspath(__file__))
-if root_path not in sys.path:
-    sys.path.insert(0, root_path)
+# Temporary Debug Screen to see what's wrong with the file system
+st.write("### 🔍 System Path Debugger")
+st.write("Current Working Directory:", os.getcwd())
+st.write("Files in Current Directory:", os.listdir('.'))
+if os.path.exists('core'):
+    st.write("Files inside 'core':", os.listdir('core'))
+else:
+    st.error("⚠️ The directory named 'core' does not exist in the root folder!")
+st.markdown("---")
 
 import streamlit as st
 import pandas as pd
