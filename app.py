@@ -185,27 +185,33 @@ def generate_bulk_indian_nbfc_ledger(num_accounts=1000):
     pay_choices = [0, 1, 2, 3, 4]
     pay_indexes = np.random.choice(pay_choices, size=num_accounts, p=[0.85, 0.07, 0.04, 0.03, 0.01])
 
+    # Locate this specific loop block inside the template engine generator function:
     for i in range(num_accounts):
         p_type = chosen_types[i]
+        
         if p_type == "home_loan":
             lim = float(np.random.randint(2500000, 9500000))
             amt = lim * np.random.uniform(0.80, 0.98)
             ltv = round(amt / lim, 2)
-            c_val = round(amt / 0.70, 2)
+            c_val = round(amt / 0.70, 2)  # Secured property asset backing
         elif p_type == "gold_loan":
             lim = float(np.random.randint(50000, 500000))
             amt = lim
             ltv = round(np.random.choice([0.65, 0.70, 0.74, 0.79], p=[0.4, 0.3, 0.2, 0.1]), 2)
-            c_val = round(amt / ltv, 2)
+            c_val = round(amt / ltv, 2)   # Secured physical gold backing
         elif p_type == "bike_loan":
             lim = float(np.random.randint(70000, 180000))
             amt = lim * np.random.uniform(0.85, 0.95)
             ltv = round(amt / lim, 2)
-            c_val = round(amt / 0.80, 2)
-        else: # Unsecured segments
+            c_val = round(amt / 0.80, 2)  # Secured vehicle hypothecation backing
+        else: 
+            # =====================================================================
+            # STRENGTHENED RULE: Unsecured items must NOT carry collateral value
+            # =====================================================================
             lim = float(np.random.randint(20000, 400000))
             amt = lim * np.random.uniform(0.10, 0.85)
-            ltv, c_val = 0.00, 0.00
+            ltv = 0.00   # Force absolute 0 for Credit Cards & Personal Loans
+            c_val = 0.00  # Force absolute 0 for Credit Cards & Personal Loans
             
         amounts.append(round(amt, 2))
         limits.append(lim)
