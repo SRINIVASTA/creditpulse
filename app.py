@@ -2,7 +2,7 @@ import os
 import sys
 
 # =====================================================================
-# 1. BULLETPROOF PATH INJECTION (Completely blocks ModuleNotFoundError)
+# 1. PATH RESOLUTION LAYER (Fixes ModuleNotFoundError)
 # =====================================================================
 root_path = os.path.dirname(os.path.abspath(__file__))
 if root_path not in sys.path:
@@ -39,7 +39,7 @@ cleaner = ComplianceFilter()
 engine = ComplianceRiskEngine(model)
 
 # =====================================================================
-# 2. POPULATED DATA FRAME FOR INLINE DOWNLOAD (No Syntax Errors)
+# 2. VALIDATED INLINE DATASETS SYSTEM (Completely populated)
 # =====================================================================
 st.markdown("### 🛠️ Data Ingestion Desk")
 sample_data = pd.DataFrame({
@@ -48,6 +48,7 @@ sample_data = pd.DataFrame({
     'loan_amount': [4500000.0, 300000.0, 120000.0, 250000.0, 500000.0],
     'bureau_score':,
     'monthly_income': [115000.0, 48000.0, 28000.0, 85000.0, 55000.0],
+    'debt_to_income': [0.42, 0.25, 0.30, 0.15, 0.55],
     'ltv_ratio': [0.65, 0.79, 0.85, 0.00, 0.00],
     'collateral_val': [6900000.0, 380000.0, 140000.0, 0.0, 0.0],
     'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed']
@@ -94,7 +95,6 @@ if uploaded_file is not None:
         with kpi_col3:
             st.metric("Risk Weighted Assets (RWA)", f"₹{total_rwa:,.2f}")
         with kpi_col4:
-            # RBI Mandates minimum 15% CRAR capitalization for Middle/Upper Layer NBFCs
             status_tag = "✅ COMPLIANT" if computed_crar >= 15.0 else "⚠️ CAPITAL DEFICIT"
             st.metric("Capital Adequacy Ratio (CRAR)", f"{computed_crar:.2f}%", status_tag)
             
