@@ -39,24 +39,35 @@ cleaner = ComplianceFilter()
 engine = ComplianceRiskEngine(model)
 
 # =====================================================================
-# 2. VALIDATED INLINE DATASETS SYSTEM (Completely populated)
+# 2. PROGRAMMATIC DATA INGESTION (Completely removes raw dictionary risks)
 # =====================================================================
 st.markdown("### 🛠️ Data Ingestion Desk")
-sample_data = pd.DataFrame({
-    'account_id': ['HL-901', 'GL-902', 'BL-903', 'CC-904', 'PL-905'],
-    'product_type': ['home_loan', 'gold_loan', 'bike_loan', 'credit_card', 'personal_loan'],
-    'loan_amount': [4500000.0, 300000.0, 120000.0, 250000.0, 500000.0],
-    'bureau_score':,
-    'monthly_income': [115000.0, 48000.0, 28000.0, 85000.0, 55000.0],
-    'debt_to_income': [0.42, 0.25, 0.30, 0.15, 0.55],
-    'ltv_ratio': [0.65, 0.79, 0.85, 0.00, 0.00],
-    'collateral_val': [6900000.0, 380000.0, 140000.0, 0.0, 0.0],
-    'religion': ['Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed', 'Non-Disclosed']
-})
+
+# Safely build the data vectors procedurally
+ids = ["HL-901", "GL-902", "BL-903", "CC-904", "PL-905"]
+types = ["home_loan", "gold_loan", "bike_loan", "credit_card", "personal_loan"]
+amounts = [4500000.0, 300000.0, 120000.0, 250000.0, 500000.0]
+scores = [765, 680, 710, 740, 610]
+incomes = [115000.0, 48000.0, 28000.0, 85000.0, 55000.0]
+dtis = [0.42, 0.25, 0.30, 0.15, 0.55]
+ltvs = [0.65, 0.79, 0.85, 0.00, 0.00]
+colvals = [6900000.0, 380000.0, 140000.0, 0.0, 0.0]
+religions = ["Non-Disclosed"] * 5
+
+sample_df = pd.DataFrame()
+sample_df["account_id"] = ids
+sample_df["product_type"] = types
+sample_df["loan_amount"] = amounts
+sample_df["bureau_score"] = scores
+sample_df["monthly_income"] = incomes
+sample_df["debt_to_income"] = dtis
+sample_df["ltv_ratio"] = ltvs
+sample_df["collateral_val"] = colvals
+sample_df["religion"] = religions
 
 st.download_button(
     label="⬇️ Download RBI-Compliant Multi-Asset Schema Template",
-    data=sample_data.to_csv(index=False),
+    data=sample_df.to_csv(index=False),
     file_name="rbi_nbfc_schema.csv",
     mime="text/csv"
 )
@@ -75,7 +86,7 @@ if uploaded_file is not None:
         results['account_id'] = cleaned_df['account_id'].astype(str)
         
         # =====================================================================
-        # 3. STATUTORY TOP TRACKER BANNER LAYER (Capital Adequacy & CRAR Sandbox)
+        # 3. STATUTORY TOP TRACKER BANNER LAYER
         # =====================================================================
         st.markdown("### 🏛️ Capital Adequacy & Reserve Provisioning Tracker")
         
@@ -83,8 +94,7 @@ if uploaded_file is not None:
         total_provisions_required = results['RBI_Mandated_Provision'].sum()
         total_rwa = results['RWA'].sum()
         
-        # Simulate NBFC Core Owned Capital Tier for CRAR illustration
-        nbfc_own_tier1_capital = 12000000.0  # ₹1.2 Crore Mock Base Capital Buffer
+        nbfc_own_tier1_capital = 12000000.0  
         computed_crar = (nbfc_own_tier1_capital / total_rwa) * 100 if total_rwa > 0 else 100.0
         
         kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
@@ -100,7 +110,6 @@ if uploaded_file is not None:
             
         st.markdown("---")
         
-        # --- PORTFOLIO DYNAMIC SEGMENT INTERACTION ---
         available_products = list(results['product_type'].unique())
         selected_segments = st.multiselect("🎛️ Select Active Audit Portfolios:", available_products, default=available_products)
         filtered_results = results[results['product_type'].isin(selected_segments)]
